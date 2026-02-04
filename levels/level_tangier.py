@@ -1,99 +1,83 @@
-import game_states
-from game_states import *
 from pgzero.actor import Actor
 from pgzero.constants import keys
 
+# === SETTINGS ===
 WIDTH = 1280
 HEIGHT = 720
 
-GRAVITY = 0.5
-JUMP_STRENGTH = -12
-MOVE_SPEED = 6
+# Physics constants
+GRAVITY = 0.5  # How fast the player falls
+JUMP_STRENGTH = -12  # Initial upward speed when jumping
+MOVE_SPEED = 6  # Horizontal movement speed
 
-player = None
-platforms = []
-items = []
+# === PLAYER ===
+player = Actor("characters/character")
+player.pos = (150, 500)
+# We track vertical speed for gravity calculations
+player.speed_y = 0
+
+# === UI ELEMENTS ===
+menu_button = Actor("ui/start_btn", pos=(80, 680))
+mute_button = Actor("ui/music_on", pos=(1220, 40))
+
+# === PLATFORMS ===
+# Create a list of platform actors hardcoded to specific positions
+platforms = [
+    Actor("items/platforms/platform_tangier", center=(300, 600)),
+    Actor("items/platforms/platform_tangier", center=(600, 550)),
+    Actor("items/platforms/platform_tangier", center=(900, 500)),
+    Actor("items/platforms/platform_tangier", center=(450, 450)),
+    Actor("items/platforms/platform_tangier", center=(750, 400)),
+    Actor("items/platforms/platform_tangier", center=(1100, 450)),
+    Actor("items/platforms/platform_tangier", center=(450, 265)),
+    Actor("items/platforms/platform_tangier", center=(950, 220)),
+]
+
+# === ITEMS TO COLLECT ===
+# List of dictionaries containing the actor and its name
+items = [
+    {"actor": Actor("items/collectibles/silver_dirhams", pos=(300, 560))},
+    {"actor": Actor("items/collectibles/compass", pos=(600, 510))},
+    {"actor": Actor("items/collectibles/water_skin", pos=(900, 460))},
+    {"actor": Actor("items/collectibles/leather_sandals", pos=(450, 410))},
+    {"actor": Actor("items/collectibles/prayer_mat", pos=(200, 630))},
+    {"actor": Actor("items/collectibles/oil_lamp", pos=(500, 630))},
+    {"actor": Actor("items/collectibles/woolen_djellaba", pos=(800, 630))},
+    {"actor": Actor("items/collectibles/holy_quran", pos=(750, 360))},
+    {"actor": Actor("items/collectibles/inkwell_and_kalam", pos=(1100, 410))},
+    {"actor": Actor("items/collectibles/travel_documents", pos=(1050, 630))},
+]
+
+# === GAME VARIABLES ===
 items_collected = 0
-total_items = 0
 ground_y = 650
 on_ground = False
 
-menu_button = None
-mute_button = None
 
-
-def init():
-    global \
-        player, \
-        platforms, \
-        items, \
-        items_collected, \
-        total_items, \
-        menu_button, \
-        mute_button
-
-    player = Actor("characters/character")
-    player.pos = (150, 500)
-    player.vx = 0
-    player.vy = 0
-
-    menu_button = Actor("ui/start_btn", pos=(80, 680))
-    mute_button = Actor("ui/music_on", pos=(1220, 40))
-
-    platforms = []
-
-    def add_plat(x, y):
-        platforms.append(Actor("items/platforms/platform_tangier", center=(x, y)))
-
-    add_plat(300, 600)
-    add_plat(600, 550)
-    add_plat(900, 500)
-    add_plat(450, 450)
-    add_plat(750, 400)
-    add_plat(1100, 450)
-    add_plat(450, 265)
-    add_plat(950, 220)
-
-    def make_item(name, image, x, y):
-        a = Actor(image)
-        a.pos = (x, y)
-        return {"actor": a, "collected": False, "name": name}
-
-    items = [
-        make_item("Silver Dirhams", "items/collectibles/silver_dirhams", 300, 560),
-        make_item("Compass", "items/collectibles/compass", 600, 510),
-        make_item("Water Skin", "items/collectibles/water_skin", 900, 460),
-        make_item("Leather Sandals", "items/collectibles/leather_sandals", 450, 410),
-        make_item("Prayer Mat", "items/collectibles/prayer_mat", 200, 630),
-        make_item("Oil Lamp", "items/collectibles/oil_lamp", 500, 630),
-        make_item("Woolen Djellaba", "items/collectibles/woolen_djellaba", 800, 630),
-        make_item("Holy Quran", "items/collectibles/holy_quran", 750, 360),
-        make_item("Inkwell & Kalam", "items/collectibles/inkwell_and_kalam", 1100, 410),
-        make_item("Travel Documents", "items/collectibles/travel_documents", 1050, 630),
-    ]
-
-    items_collected = 0
-    total_items = len(items)
-
-
+# === DRAWING ===
 def draw(screen):
+    """Draws the game world, platforms, items, and UI."""
     screen.clear()
     screen.blit("backgrounds/bg_tangier", (0, 0))
 
+    # Draw all platforms
     for p in platforms:
         p.draw()
 
+    # Draw items (only those still in the list are drawn)
     for item in items:
-        if not item["collected"]:
-            item["actor"].draw()
+        item["actor"].draw()
 
+    # Draw player
     player.draw()
 
+    # Draw UI buttons
     menu_button.draw()
     mute_button.draw()
 
+    # Draw score text
     screen.draw.text(
-        f"Items: {items_collected}/{total_items}",
+        f"Items: {items_collected}/10",
         topleft=(20, 20),
         fontsize=40,
         color="white",
@@ -101,15 +85,8 @@ def draw(screen):
         ocolor="black",
     )
 
-    collected_x = WIDTH - 60
-    for item in items:
-        if item["collected"]:
-            small_actor = Actor(item["actor"].image)
-            small_actor.pos = (collected_x, 80)
-            small_actor.draw()
-            collected_x -= 50
-
-    if items_collected >= total_items:
+    # If all items are collected, show victory message
+    if items_collected >= 10:
         screen.draw.text(
             "READY FOR PILGRIMAGE!",
             center=(WIDTH // 2, HEIGHT // 2),
@@ -128,84 +105,111 @@ def draw(screen):
         )
 
 
-def handle_movement(keyboard):
-    player.vx = 0
+# === GAME UPDATE LOOP ===
+def update(keyboard):
+    """Handles movement, physics, collisions, and item collection."""
+    global items_collected, on_ground
+
+    # If game is won, stop updating physics
+    if items_collected >= 10:
+        return
+
+    # --- 1. HORIZONTAL MOVEMENT ---
+
+    # Check Left Arrow
     if keyboard.left:
-        player.vx = -MOVE_SPEED
-    if keyboard.right:
-        player.vx = MOVE_SPEED
-
-    player.x += player.vx
-
-    for p in platforms:
-        if player.colliderect(p):
-            if player.vx > 0:
-                player.right = p.left
-            elif player.vx < 0:
+        player.x -= MOVE_SPEED
+        # Check if we hit a platform from the right
+        for p in platforms:
+            if player.colliderect(p):
                 player.left = p.right
 
+    # Check Right Arrow
+    if keyboard.right:
+        player.x += MOVE_SPEED
+        # Check if we hit a platform from the left
+        for p in platforms:
+            if player.colliderect(p):
+                player.right = p.left
+
+    # Screen Boundaries (keep player inside screen)
     if player.left < 0:
         player.left = 0
     if player.right > WIDTH:
         player.right = WIDTH
 
+    # --- 2. VERTICAL MOVEMENT (GRAVITY) ---
 
-def handle_collisions():
-    global on_ground
+    # Apply gravity to pull player down
+    player.speed_y += GRAVITY
+    player.y += player.speed_y
 
-    player.vy += GRAVITY
-    player.y += player.vy
+    on_ground = False  # Assume in air until we hit something
 
-    on_ground = False
-
+    # Check Ground Collision
     if player.bottom >= ground_y:
         player.bottom = ground_y
-        player.vy = 0
+        player.speed_y = 0
         on_ground = True
 
+    # Check Platform Collision (falling onto them or hitting head)
     for p in platforms:
         if player.colliderect(p):
-            if player.vy > 0:
+            if player.speed_y > 0:  # Falling down onto platform
                 player.bottom = p.top
-                player.vy = 0
+                player.speed_y = 0
                 on_ground = True
-            elif player.vy < 0:
+            elif player.speed_y < 0:  # Jumping up into platform
                 player.top = p.bottom
-                player.vy = 0
+                player.speed_y = 0
 
+    # Respawn if falling off screen (safety check)
     if player.top > HEIGHT:
         player.pos = (150, 500)
-        player.vy = 0
+        player.speed_y = 0
 
-
-def handle_items():
-    global items_collected
-
+    # --- 3. ITEM COLLECTION ---
+    # Check if player overlaps with any item
     for item in items:
-        if not item["collected"] and player.colliderect(item["actor"]):
-            item["collected"] = True
+        if player.colliderect(item["actor"]):
+            # Item collected! Remove it from list
+            items.remove(item)
             items_collected += 1
+            break  # Stop checking this frame
 
 
-def update(keyboard):
-    if items_collected >= total_items:
-        return
-
-    handle_movement(keyboard)
-    handle_collisions()
-    handle_items()
-
-
+# === INPUT HANDLING ===
 def on_mouse_down(pos):
-    if menu_button.collidepoint(pos):
-        return STATE_WORLD_MAP
+    """Handles button clicks."""
 
+    # Return to map if menu button clicked
+    if menu_button.collidepoint(pos):
+        return "map"
+
+    # Toggle music
     if mute_button.collidepoint(pos):
         toggle_sound()
 
     return None
 
 
+def on_key_down(key):
+    """Handles jumping and victory exit."""
+    global items_collected
+
+    # If game won, SPACE returns to map
+    if items_collected >= 10:
+        if key == keys.SPACE:
+            return "map"
+    else:
+        # Normal jump if on ground
+        if (key == keys.SPACE or key == keys.UP) and on_ground:
+            player.speed_y = JUMP_STRENGTH
+
+    return None
+
+
+# === HELPERS ===
 def toggle_sound():
     try:
         if mute_button.image == "ui/music_on":
@@ -216,16 +220,3 @@ def toggle_sound():
             mute_button.image = "ui/music_on"
     except:
         pass
-
-
-def on_key_down(key):
-    global items_collected
-
-    if items_collected >= total_items:
-        if key == keys.SPACE:
-            return STATE_WORLD_MAP
-    else:
-        if (key == keys.SPACE or key == keys.UP) and on_ground:
-            player.vy = JUMP_STRENGTH
-
-    return None
