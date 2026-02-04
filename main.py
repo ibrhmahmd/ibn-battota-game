@@ -1,13 +1,10 @@
 import pgzrun
-import pygame
 
 # === SCREEN SETTINGS ===
 WIDTH = 1280
 HEIGHT = 720
 
 # === GAME STATE ===
-# This variable keeps track of which screen to show
-# Options: "start", "map", "tangier", "fez"
 current_screen = "start"
 
 # === IMPORT OTHER FILES ===

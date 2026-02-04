@@ -6,14 +6,13 @@ WIDTH = 1280
 HEIGHT = 720
 
 # Physics constants
-GRAVITY = 0.5  # How fast the player falls
-JUMP_STRENGTH = -12  # Initial upward speed when jumping
-MOVE_SPEED = 6  # Horizontal movement speed
+GRAVITY = 0.5
+JUMP_STRENGTH = -12
+MOVE_SPEED = 6
 
 # === PLAYER ===
 player = Actor("characters/character")
 player.pos = (150, 500)
-# We track vertical speed for gravity calculations
 player.speed_y = 0
 
 # === UI ELEMENTS ===
@@ -21,7 +20,6 @@ menu_button = Actor("ui/start_btn", pos=(80, 680))
 mute_button = Actor("ui/music_on", pos=(1220, 40))
 
 # === PLATFORMS ===
-# Create a list of platform actors hardcoded to specific positions
 platforms = [
     Actor("items/platforms/platform_tangier", center=(300, 600)),
     Actor("items/platforms/platform_tangier", center=(600, 550)),
@@ -34,7 +32,6 @@ platforms = [
 ]
 
 # === ITEMS TO COLLECT ===
-# List of dictionaries containing the actor and its name
 items = [
     {"actor": Actor("items/collectibles/silver_dirhams", pos=(300, 560))},
     {"actor": Actor("items/collectibles/compass", pos=(600, 510))},
@@ -56,15 +53,12 @@ on_ground = False
 
 # === DRAWING ===
 def draw(screen):
-    """Draws the game world, platforms, items, and UI."""
     screen.clear()
     screen.blit("backgrounds/bg_tangier", (0, 0))
 
-    # Draw all platforms
     for p in platforms:
         p.draw()
 
-    # Draw items (only those still in the list are drawn)
     for item in items:
         item["actor"].draw()
 
@@ -85,7 +79,6 @@ def draw(screen):
         ocolor="black",
     )
 
-    # If all items are collected, show victory message
     if items_collected >= 10:
         screen.draw.text(
             "READY FOR PILGRIMAGE!",
@@ -107,7 +100,6 @@ def draw(screen):
 
 # === GAME UPDATE LOOP ===
 def update(keyboard):
-    """Handles movement, physics, collisions, and item collection."""
     global items_collected, on_ground
 
     # If game is won, stop updating physics
@@ -119,7 +111,6 @@ def update(keyboard):
     # Check Left Arrow
     if keyboard.left:
         player.x -= MOVE_SPEED
-        # Check if we hit a platform from the right
         for p in platforms:
             if player.colliderect(p):
                 player.left = p.right
@@ -127,7 +118,6 @@ def update(keyboard):
     # Check Right Arrow
     if keyboard.right:
         player.x += MOVE_SPEED
-        # Check if we hit a platform from the left
         for p in platforms:
             if player.colliderect(p):
                 player.right = p.left
@@ -140,11 +130,10 @@ def update(keyboard):
 
     # --- 2. VERTICAL MOVEMENT (GRAVITY) ---
 
-    # Apply gravity to pull player down
     player.speed_y += GRAVITY
     player.y += player.speed_y
 
-    on_ground = False  # Assume in air until we hit something
+    on_ground = False
 
     # Check Ground Collision
     if player.bottom >= ground_y:
@@ -155,11 +144,11 @@ def update(keyboard):
     # Check Platform Collision (falling onto them or hitting head)
     for p in platforms:
         if player.colliderect(p):
-            if player.speed_y > 0:  # Falling down onto platform
+            if player.speed_y > 0:
                 player.bottom = p.top
                 player.speed_y = 0
                 on_ground = True
-            elif player.speed_y < 0:  # Jumping up into platform
+            elif player.speed_y < 0:
                 player.top = p.bottom
                 player.speed_y = 0
 
@@ -169,24 +158,18 @@ def update(keyboard):
         player.speed_y = 0
 
     # --- 3. ITEM COLLECTION ---
-    # Check if player overlaps with any item
     for item in items:
         if player.colliderect(item["actor"]):
-            # Item collected! Remove it from list
             items.remove(item)
             items_collected += 1
-            break  # Stop checking this frame
+            break
 
 
 # === INPUT HANDLING ===
 def on_mouse_down(pos):
-    """Handles button clicks."""
-
-    # Return to map if menu button clicked
     if menu_button.collidepoint(pos):
         return "map"
 
-    # Toggle music
     if mute_button.collidepoint(pos):
         toggle_sound()
 
@@ -194,15 +177,12 @@ def on_mouse_down(pos):
 
 
 def on_key_down(key):
-    """Handles jumping and victory exit."""
     global items_collected
 
-    # If game won, SPACE returns to map
     if items_collected >= 10:
         if key == keys.SPACE:
             return "map"
     else:
-        # Normal jump if on ground
         if (key == keys.SPACE or key == keys.UP) and on_ground:
             player.speed_y = JUMP_STRENGTH
 
