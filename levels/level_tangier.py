@@ -1,57 +1,58 @@
 from pgzero.actor import Actor
+from pgzero.builtins import music
 from pgzero.constants import keys
+import random
+import mission_overlay
 
-# === SETTINGS ===
 WIDTH = 1280
 HEIGHT = 720
 
-# Physics constants
 GRAVITY = 0.5
 JUMP_STRENGTH = -12
 MOVE_SPEED = 6
 
-# === PLAYER ===
 player = Actor("characters/character")
 player.pos = (150, 500)
 player.speed_y = 0
 
-# === UI ELEMENTS ===
-menu_button = Actor("ui/start_btn", pos=(80, 680))
-mute_button = Actor("ui/music_on", pos=(1220, 40))
+back_button = Actor("ui/back_btn", pos=(80, 50))
 
-# === PLATFORMS ===
 platforms = [
-    Actor("items/platforms/platform_tangier", center=(300, 600)),
-    Actor("items/platforms/platform_tangier", center=(600, 550)),
-    Actor("items/platforms/platform_tangier", center=(900, 500)),
-    Actor("items/platforms/platform_tangier", center=(450, 450)),
-    Actor("items/platforms/platform_tangier", center=(750, 400)),
-    Actor("items/platforms/platform_tangier", center=(1100, 450)),
-    Actor("items/platforms/platform_tangier", center=(450, 265)),
-    Actor("items/platforms/platform_tangier", center=(950, 220)),
+    Actor("items/platforms/platform", center=(300, 600)),
+    Actor("items/platforms/platform", center=(600, 550)),
+    Actor("items/platforms/platform", center=(900, 500)),
+    Actor("items/platforms/platform", center=(450, 450)),
+    Actor("items/platforms/platform", center=(750, 400)),
+    Actor("items/platforms/platform", center=(1100, 370)),
+    Actor("items/platforms/platform", center=(450, 265)),
+    Actor("items/platforms/platform", center=(950, 220)),
+    Actor("items/platforms/platform", center=(1020, 630)),
+    Actor("items/platforms/platform", center=(1220, 630)),
 ]
 
-# === ITEMS TO COLLECT ===
 items = [
-    {"actor": Actor("items/collectibles/silver_dirhams", pos=(300, 560))},
-    {"actor": Actor("items/collectibles/compass", pos=(600, 510))},
-    {"actor": Actor("items/collectibles/water_skin", pos=(900, 460))},
-    {"actor": Actor("items/collectibles/leather_sandals", pos=(450, 410))},
     {"actor": Actor("items/collectibles/prayer_mat", pos=(200, 630))},
-    {"actor": Actor("items/collectibles/oil_lamp", pos=(500, 630))},
-    {"actor": Actor("items/collectibles/woolen_djellaba", pos=(800, 630))},
+    {"actor": Actor("items/collectibles/leather_sandals", pos=(450, 410))},
+    {"actor": Actor("items/collectibles/compass", pos=(600, 510))},
     {"actor": Actor("items/collectibles/holy_quran", pos=(750, 360))},
-    {"actor": Actor("items/collectibles/inkwell_and_kalam", pos=(1100, 410))},
-    {"actor": Actor("items/collectibles/travel_documents", pos=(1050, 630))},
+    {"actor": Actor("items/collectibles/woolen_djellaba", pos=(800, 630))},
+    {"actor": Actor("items/collectibles/water_skin", pos=(900, 460))},
+    {"actor": Actor("items/collectibles/silver_dirhams", pos=(300, 560))},
+    {"actor": Actor("items/collectibles/oil_lamp", pos=(500, 630))},
+    {"actor": Actor("items/collectibles/travel_documents", pos=(1080, 550))},
+    {"actor": Actor("items/collectibles/inkwell_and_kalam", pos=(1100, 330))},
 ]
 
-# === GAME VARIABLES ===
 items_collected = 0
 ground_y = 650
 on_ground = False
+show_mission = True
+
+# Visual Effects
+leaf_particles = []
+victory_seal = Actor("items/level_passed_seal", center=(WIDTH // 2, HEIGHT // 2))
 
 
-# === DRAWING ===
 def draw(screen):
     screen.clear()
     screen.blit("backgrounds/bg_tangier", (0, 0))
@@ -62,17 +63,13 @@ def draw(screen):
     for item in items:
         item["actor"].draw()
 
-    # Draw player
     player.draw()
 
-    # Draw UI buttons
-    menu_button.draw()
-    mute_button.draw()
+    back_button.draw()
 
-    # Draw score text
     screen.draw.text(
         f"Items: {items_collected}/10",
-        topleft=(20, 20),
+        topleft=(20, 100),
         fontsize=40,
         color="white",
         owidth=1.5,
@@ -80,68 +77,76 @@ def draw(screen):
     )
 
     if items_collected >= 10:
+        victory_seal.draw()
         screen.draw.text(
-            "READY FOR PILGRIMAGE!",
-            center=(WIDTH // 2, HEIGHT // 2),
-            fontsize=60,
-            color="gold",
-            owidth=2,
-            ocolor="black",
-        )
-        screen.draw.text(
-            "Press SPACE to Depart",
+            "Press SPACE to Continue",
             center=(WIDTH / 2, HEIGHT / 2 + 60),
             fontsize=40,
             color="white",
             owidth=1.5,
             ocolor="black",
         )
+    else:
+        for leaf in leaf_particles:
+            leaf["actor"].draw()
+
+    if show_mission:
+        mission_overlay.draw(screen, "tangier")
 
 
-# === GAME UPDATE LOOP ===
 def update(keyboard):
-    global items_collected, on_ground
+    global items_collected, on_ground, leaf_particles, show_mission
 
-    # If game is won, stop updating physics
+    if show_mission:
+        return
+
     if items_collected >= 10:
         return
 
-    # --- 1. HORIZONTAL MOVEMENT ---
+    if random.random() < 0.02:
+        l = Actor("items/leaf")
+        l.pos = (random.randint(0, WIDTH), -20)
+        leaf_particles.append(
+            {
+                "actor": l,
+                "speed_x": random.uniform(-1, 1),
+                "speed_y": random.uniform(1, 3),
+            }
+        )
 
-    # Check Left Arrow
+    for leaf in leaf_particles:
+        leaf["actor"].x += leaf["speed_x"]
+        leaf["actor"].y += leaf["speed_y"]
+        leaf["actor"].angle += 1
+
+    leaf_particles[:] = [l for l in leaf_particles if l["actor"].y < HEIGHT + 20]
+
     if keyboard.left:
         player.x -= MOVE_SPEED
-        for p in platforms:
-            if player.colliderect(p):
-                player.left = p.right
+        for platform in platforms:
+            if player.colliderect(platform):
+                player.left = platform.right
 
-    # Check Right Arrow
     if keyboard.right:
         player.x += MOVE_SPEED
-        for p in platforms:
-            if player.colliderect(p):
-                player.right = p.left
+        for platform in platforms:
+            if player.colliderect(platform):
+                player.right = platform.left
 
-    # Screen Boundaries (keep player inside screen)
     if player.left < 0:
         player.left = 0
     if player.right > WIDTH:
         player.right = WIDTH
-
-    # --- 2. VERTICAL MOVEMENT (GRAVITY) ---
 
     player.speed_y += GRAVITY
     player.y += player.speed_y
 
     on_ground = False
 
-    # Check Ground Collision
     if player.bottom >= ground_y:
         player.bottom = ground_y
         player.speed_y = 0
         on_ground = True
-
-    # Check Platform Collision (falling onto them or hitting head)
     for p in platforms:
         if player.colliderect(p):
             if player.speed_y > 0:
@@ -152,12 +157,9 @@ def update(keyboard):
                 player.top = p.bottom
                 player.speed_y = 0
 
-    # Respawn if falling off screen (safety check)
     if player.top > HEIGHT:
         player.pos = (150, 500)
         player.speed_y = 0
-
-    # --- 3. ITEM COLLECTION ---
     for item in items:
         if player.colliderect(item["actor"]):
             items.remove(item)
@@ -165,19 +167,20 @@ def update(keyboard):
             break
 
 
-# === INPUT HANDLING ===
 def on_mouse_down(pos):
-    if menu_button.collidepoint(pos):
+    if back_button.collidepoint(pos):
         return "map"
-
-    if mute_button.collidepoint(pos):
-        toggle_sound()
 
     return None
 
 
 def on_key_down(key):
-    global items_collected
+    global items_collected, show_mission
+
+    if show_mission:
+        if key == keys.SPACE:
+            show_mission = False
+        return
 
     if items_collected >= 10:
         if key == keys.SPACE:
@@ -185,18 +188,4 @@ def on_key_down(key):
     else:
         if (key == keys.SPACE or key == keys.UP) and on_ground:
             player.speed_y = JUMP_STRENGTH
-
     return None
-
-
-# === HELPERS ===
-def toggle_sound():
-    try:
-        if mute_button.image == "ui/music_on":
-            music.stop()
-            mute_button.image = "ui/music_off"
-        else:
-            music.play("background_music")
-            mute_button.image = "ui/music_on"
-    except:
-        pass

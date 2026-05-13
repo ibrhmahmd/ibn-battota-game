@@ -1,25 +1,20 @@
 import pgzrun
+from pgzero.actor import Actor
+from pgzero.builtins import music
+import start_screen
+import world_map
+from levels import level_tangier, level_fez, level_cairo, level_damascus, level_timbuktu
 
-# === SCREEN SETTINGS ===
 WIDTH = 1280
 HEIGHT = 720
 
-# === GAME STATE ===
 current_screen = "start"
-
-# === IMPORT OTHER FILES ===
-import start_screen
-import world_map
-import levels.level_tangier as level_tangier
-import levels.level_fez as level_fez
+mute_button = Actor("ui/music_on", pos=(WIDTH - 60, 60))
 
 
-# === DRAW LOOP ===
-# This function runs every frame to draw images on the screen
 def draw():
     screen.clear()
 
-    # Check which screen is active and draw it
     if current_screen == "start":
         start_screen.draw(screen)
 
@@ -32,9 +27,18 @@ def draw():
     elif current_screen == "fez":
         level_fez.draw(screen)
 
+    elif current_screen == "cairo":
+        level_cairo.draw(screen)
 
-# === UPDATE LOOP ===
-# This function runs every frame to update game logic
+    elif current_screen == "damascus":
+        level_damascus.draw(screen)
+
+    elif current_screen == "timbuktu":
+        level_timbuktu.draw(screen)
+
+    mute_button.draw()
+
+
 def update():
     if current_screen == "map":
         world_map.update(keyboard)
@@ -45,13 +49,24 @@ def update():
     elif current_screen == "fez":
         level_fez.update()
 
+    elif current_screen == "cairo":
+        level_cairo.update(keyboard)
 
-# === INPUT HANDLERS ===
+    elif current_screen == "damascus":
+        level_damascus.update(keyboard)
+
+    elif current_screen == "timbuktu":
+        level_timbuktu.update(keyboard)
+
+
 def on_mouse_down(pos):
     global current_screen
 
-    # Store the new screen name (or None if no change)
     new_screen = None
+
+    if mute_button.collidepoint(pos):
+        toggle_sound()
+        return
 
     if current_screen == "start":
         new_screen = start_screen.on_mouse_down(pos)
@@ -65,7 +80,15 @@ def on_mouse_down(pos):
     elif current_screen == "fez":
         new_screen = level_fez.on_mouse_down(pos)
 
-    # If a new screen was requested, switch to it
+    elif current_screen == "cairo":
+        new_screen = level_cairo.on_mouse_down(pos)
+
+    elif current_screen == "damascus":
+        new_screen = level_damascus.on_mouse_down(pos)
+
+    elif current_screen == "timbuktu":
+        new_screen = level_timbuktu.on_mouse_down(pos)
+
     if new_screen:
         current_screen = new_screen
 
@@ -73,26 +96,39 @@ def on_mouse_down(pos):
 def on_key_down(key):
     global current_screen
 
-    # Check for key presses in the current level
     new_screen = None
 
     if current_screen == "tangier":
         new_screen = level_tangier.on_key_down(key)
     elif current_screen == "fez":
         new_screen = level_fez.on_key_down(key)
-
-    # Convert numeric keypad presses to number keys for level testing shortcuts (optional)
-    # No shortcuts implemented for simplification
+    elif current_screen == "cairo":
+        new_screen = level_cairo.on_key_down(key)
+    elif current_screen == "damascus":
+        new_screen = level_damascus.on_key_down(key)
+    elif current_screen == "timbuktu":
+        new_screen = level_timbuktu.on_key_down(key)
 
     if new_screen:
         current_screen = new_screen
 
 
-# === START MUSIC ===
+def toggle_sound():
+    try:
+        if mute_button.image == "ui/music_on":
+            music.stop()
+            mute_button.image = "ui/music_off"
+        else:
+            music.play("background_music")
+            mute_button.image = "ui/music_on"
+    except:
+        pass
+
+
 try:
     music.play("background_music")
 except:
     pass
 
-# === START GAME ===
+
 pgzrun.go()
