@@ -35,6 +35,7 @@ def draw(screen):
 
     character.draw()
 
+    number = 1
     for city in cities:
         name = city.image.split("/")[-1].replace("_", " ").title()
 
