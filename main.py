@@ -5,7 +5,7 @@ import start_screen
 import world_map
 from levels import level_tangier, level_fez, level_cairo, level_damascus, level_timbuktu
 
-WIDTH = 1280
+WIDTH = 1280 
 HEIGHT = 720
 
 current_screen = "start"
