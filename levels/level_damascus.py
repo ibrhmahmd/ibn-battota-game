@@ -6,19 +6,8 @@ import mission_overlay
 WIDTH = 1280
 HEIGHT = 720
 
-player = Actor("characters/character")
-player.pos = (WIDTH // 2, 650)
+WIN_SCORE = 50
 MOVE_SPEED = 10
-
-score = 0
-win = False
-show_mission = True
-victory_seal = Actor("items/level_passed_seal", center=(WIDTH // 2, HEIGHT // 2))
-back_button = Actor("ui/back_btn", pos=(80, 50))
-
-
-items = []
-spawn_timer = 0
 
 ITEM_TYPES = [
     {"image": "items/collectibles/holy_quran", "points": 1, "type": "good"},
@@ -28,9 +17,31 @@ ITEM_TYPES = [
     {"image": "items/damascus/rock", "points": -5, "type": "bad"},
 ]
 
+player = Actor("characters/character")
+back_button = Actor("ui/back_btn", pos=(80, 50))
+victory_seal = Actor("items/level_passed_seal", center=(WIDTH // 2, HEIGHT // 2))
+
+score = 0
+win = False
+show_mission = True
+items = []
+spawn_timer = 0
+
+
+def reset():
+    global score, win, show_mission, items, spawn_timer
+    player.pos = (WIDTH // 2, 650)
+    score = 0
+    win = False
+    show_mission = True
+    items = []
+    spawn_timer = 0
+
+
+reset()
+
 
 def draw(screen):
-    screen.clear()
     screen.blit("backgrounds/bg_damascus", (0, 0))
 
     back_button.draw()
@@ -40,7 +51,7 @@ def draw(screen):
         item.draw()
 
     screen.draw.text(
-        f"SCORE: {score}/50",
+        f"SCORE: {score}/{WIN_SCORE}",
         topleft=(20, 100),
         fontsize=50,
         color="white",
@@ -92,7 +103,7 @@ def update(keyboard):
             if score < 0:
                 score = 0
             items.remove(item)
-            if score >= 50:
+            if score >= WIN_SCORE:
                 win = True
         elif item.top > HEIGHT:
             items.remove(item)

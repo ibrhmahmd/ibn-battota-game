@@ -5,37 +5,24 @@ import mission_overlay
 WIDTH = 1280
 HEIGHT = 720
 
-back_button = Actor("ui/back_btn", pos=(80, 50))
-
-player = Actor("characters/character", pos=(150, 500))
-
-found = 0
-win = False
-timer = 0
-on_ground = False
-show_mission = True
-player.speed_y = 0
+TOTAL_ITEMS = 8
 GRAVITY = 0.5
 JUMP_STRENGTH = -12
 MOVE_SPEED = 6
 
-p1 = Actor("items/platforms/platform", pos=(150, 650))
-p2 = Actor("items/platforms/platform", pos=(700, 550))
-p3 = Actor("items/platforms/platform", pos=(1180, 600))
-p4 = Actor("items/platforms/platform", pos=(300, 350))
-p5 = Actor("items/platforms/platform", pos=(1050, 250))
+back_button = Actor("ui/back_btn", pos=(80, 50))
+victory_seal = Actor("items/level_passed_seal", center=(WIDTH // 2, HEIGHT // 2))
 
-platforms = [p1, p2, p3, p4, p5]
+player = Actor("characters/character")
 
-moving_platform_1 = Actor("items/platforms/platform", pos=(400, 550))
-moving_platform_2 = Actor("items/platforms/platform", pos=(950, 450))
-moving_platform_3 = Actor("items/platforms/platform", pos=(750, 150))
+STATIC_PLATFORM_DATA = [
+    (150, 650), (700, 550), (1180, 600), (300, 350), (1050, 250),
+]
+MOVING_PLATFORM_DATA = [
+    (400, 550), (950, 450), (750, 150),
+]
 
-moving_platforms = [moving_platform_1, moving_platform_2, moving_platform_3]
-
-
-items = []
-item_data = [
+ITEM_DATA = [
     ("items/cairo/nile_water_glass", (300, 310)),
     ("items/cairo/medicine_bottle", (1050, 210)),
     ("items/collectibles/silver_dirhams", (700, 510)),
@@ -46,14 +33,34 @@ item_data = [
     ("items/cairo/suger_cane", (150, 610)),
 ]
 
-for img, pos in item_data:
-    i = Actor(img, pos=pos)
-    items.append(i)
-victory_seal = Actor("items/level_passed_seal", center=(WIDTH // 2, HEIGHT // 2))
+platforms = []
+moving_platforms = []
+items = []
+found = 0
+win = False
+timer = 0
+on_ground = False
+show_mission = True
+
+
+def reset():
+    global platforms, moving_platforms, items, found, win, timer, on_ground, show_mission
+    player.pos = (150, 500)
+    player.speed_y = 0
+    platforms = [Actor("items/platforms/platform", pos=pos) for pos in STATIC_PLATFORM_DATA]
+    moving_platforms = [Actor("items/platforms/platform", pos=pos) for pos in MOVING_PLATFORM_DATA]
+    items = [Actor(img, pos=pos) for img, pos in ITEM_DATA]
+    found = 0
+    win = False
+    timer = 0
+    on_ground = False
+    show_mission = True
+
+
+reset()
 
 
 def draw(screen):
-    screen.clear()
     screen.blit("backgrounds/bg_cairo", (0, 0))
 
     for p in platforms:
@@ -73,7 +80,7 @@ def draw(screen):
     back_button.draw()
 
     screen.draw.text(
-        f"Items Found: {found}/8",
+        f"Items Found: {found}/{TOTAL_ITEMS}",
         topleft=(20, 100),
         fontsize=40,
         color="white",
@@ -147,7 +154,7 @@ def update(keyboard):
             items.remove(item)
             found += 1
 
-    if found >= 8:
+    if found >= TOTAL_ITEMS:
         win = True
 
 

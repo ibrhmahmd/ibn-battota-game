@@ -10,12 +10,10 @@ HEIGHT = 720
 GRAVITY = 0.5
 JUMP_STRENGTH = -12
 MOVE_SPEED = 6
-
-player = Actor("characters/character")
-player.pos = (150, 500)
-player.speed_y = 0
+TOTAL_ITEMS = 10
 
 back_button = Actor("ui/back_btn", pos=(80, 50))
+victory_seal = Actor("items/level_passed_seal", center=(WIDTH // 2, HEIGHT // 2))
 
 platforms = [
     Actor("items/platforms/platform", center=(300, 600)),
@@ -30,31 +28,43 @@ platforms = [
     Actor("items/platforms/platform", center=(1220, 630)),
 ]
 
-items = [
-    {"actor": Actor("items/collectibles/prayer_mat", pos=(200, 630))},
-    {"actor": Actor("items/collectibles/leather_sandals", pos=(450, 410))},
-    {"actor": Actor("items/collectibles/compass", pos=(600, 510))},
-    {"actor": Actor("items/collectibles/holy_quran", pos=(750, 360))},
-    {"actor": Actor("items/collectibles/woolen_djellaba", pos=(800, 630))},
-    {"actor": Actor("items/collectibles/water_skin", pos=(900, 460))},
-    {"actor": Actor("items/collectibles/silver_dirhams", pos=(300, 560))},
-    {"actor": Actor("items/collectibles/oil_lamp", pos=(500, 630))},
-    {"actor": Actor("items/collectibles/travel_documents", pos=(1080, 550))},
-    {"actor": Actor("items/collectibles/inkwell_and_kalam", pos=(1100, 330))},
+ITEM_DATA = [
+    ("items/collectibles/prayer_mat", (200, 630)),
+    ("items/collectibles/leather_sandals", (450, 410)),
+    ("items/collectibles/compass", (600, 510)),
+    ("items/collectibles/holy_quran", (750, 360)),
+    ("items/collectibles/woolen_djellaba", (800, 630)),
+    ("items/collectibles/water_skin", (900, 460)),
+    ("items/collectibles/silver_dirhams", (300, 560)),
+    ("items/collectibles/oil_lamp", (500, 630)),
+    ("items/collectibles/travel_documents", (1080, 550)),
+    ("items/collectibles/inkwell_and_kalam", (1100, 330)),
 ]
 
-items_collected = 0
+player = Actor("characters/character")
 ground_y = 650
+items = []
+items_collected = 0
 on_ground = False
 show_mission = True
-
-# Visual Effects
 leaf_particles = []
-victory_seal = Actor("items/level_passed_seal", center=(WIDTH // 2, HEIGHT // 2))
+
+
+def reset():
+    global items, items_collected, on_ground, show_mission, leaf_particles
+    player.pos = (150, 500)
+    player.speed_y = 0
+    items = [{"actor": Actor(img, pos=pos)} for img, pos in ITEM_DATA]
+    items_collected = 0
+    on_ground = False
+    show_mission = True
+    leaf_particles = []
+
+
+reset()
 
 
 def draw(screen):
-    screen.clear()
     screen.blit("backgrounds/bg_tangier", (0, 0))
 
     for p in platforms:
@@ -68,7 +78,7 @@ def draw(screen):
     back_button.draw()
 
     screen.draw.text(
-        f"Items: {items_collected}/10",
+        f"Items: {items_collected}/{TOTAL_ITEMS}",
         topleft=(20, 100),
         fontsize=40,
         color="white",
@@ -76,7 +86,7 @@ def draw(screen):
         ocolor="black",
     )
 
-    if items_collected >= 10:
+    if items_collected >= TOTAL_ITEMS:
         victory_seal.draw()
         screen.draw.text(
             "Press SPACE to Continue",
@@ -100,7 +110,7 @@ def update(keyboard):
     if show_mission:
         return
 
-    if items_collected >= 10:
+    if items_collected >= TOTAL_ITEMS:
         return
 
     if random.random() < 0.02:
@@ -160,7 +170,7 @@ def update(keyboard):
     if player.top > HEIGHT:
         player.pos = (150, 500)
         player.speed_y = 0
-    for item in items:
+    for item in items[:]:
         if player.colliderect(item["actor"]):
             items.remove(item)
             items_collected += 1
@@ -182,7 +192,7 @@ def on_key_down(key):
             show_mission = False
         return
 
-    if items_collected >= 10:
+    if items_collected >= TOTAL_ITEMS:
         if key == keys.SPACE:
             return "map"
     else:
